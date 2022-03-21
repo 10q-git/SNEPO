@@ -14,8 +14,6 @@ file_struct = dict()
 names = set()
 email_addresses = set()
 phone_numbers = set()
-procs = []
-count_proc = 0
 visited_site = 0
 
 def valid_url(url):
@@ -56,11 +54,11 @@ def website_links(url, flags):
             if not re.search(r'\.[a-zA-Z]+$', href):
                 urls.add(href)
 
-    if flags & 16:
-        names = names.union(search_names.search(html_content.decode('UTF-8')))
     if flags & 8:
-        email_addresses = email_addresses.union(search_emails.search(html_content.decode('UTF-8')))
+        names = names.union(search_names.search(html_content.decode('UTF-8')))
     if flags & 4:
+        email_addresses = email_addresses.union(search_emails.search(html_content.decode('UTF-8')))
+    if flags & 2:
         phone_numbers = phone_numbers.union(search_phones.search(html_content.decode('UTF-8')))
     return urls
 
@@ -72,7 +70,7 @@ def crawl(url, flags):
 
     links = website_links(url, flags)
     visited_site += 1
-    if visited_site < 2:
+    if visited_site < 1:
         for link in links:
             crawl(link, flags)
 

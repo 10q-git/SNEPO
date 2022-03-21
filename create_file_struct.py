@@ -13,7 +13,7 @@ def add_path(file_struct, path):
         else:
             file_struct[file] = dict()
 
-def create_file_struct(int_url):
+def create(int_url):
     file_struct = dict()
     for url in int_url:
         path = urlparse(url).path[1:]
