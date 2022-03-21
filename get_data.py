@@ -64,8 +64,6 @@ def website_links(url, flags):
 
 
 def crawl(url, flags):
-    global procs
-    global count_proc
     global visited_site
 
     links = website_links(url, flags)

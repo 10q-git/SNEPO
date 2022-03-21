@@ -11,8 +11,8 @@ if __name__ == "__main__":
     parser = input_parse.createParser()
     parser.print_help()
 
-    input = input("\nLets try:\n").split()
-    namespace = parser.parse_args(input)
+    input_list = input("\nLets try:\n").split()
+    namespace = parser.parse_args(input_list)
     print(namespace)
 
     if 'url' in namespace:

@@ -2,7 +2,7 @@ import requests
 import zipfile
 import xml.etree.ElementTree as ET
 
-def get_from_docx(file_name):
+def get_from_office_x(file_name):
     zip_obj = zipfile.ZipFile(file_name)
     zip_obj.extractall('./tmp/unziped')
     zip_obj.close()
@@ -15,7 +15,6 @@ def get_from_docx(file_name):
 
     return meta_data
 
-
 def get(url):
     file_name = url.split('/')[-1]
     file = open(f'./tmp/{file_name}', "wb")
@@ -23,8 +22,9 @@ def get(url):
     file.write(ufr.content)
     file.close
 
+    meta_data = dict()
     file_format = file_name.split('.')[-1]
-    if file_format == 'docx' or file_format == 'doc':
-        meta_data = get_from_docx(f'./tmp/{file_name}')
+    if file_format == 'docx' or file_format == 'pptx' or file_format == 'xlsx':
+        meta_data = get_from_office_x(f'./tmp/{file_name}')
 
     return meta_data
