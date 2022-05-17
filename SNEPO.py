@@ -1,3 +1,5 @@
+import os
+
 import create_file_struct
 import get_data
 import get_meta_data
@@ -62,6 +64,8 @@ if __name__ == "__main__":
     elif 'fileUrl' in namespace:
         #Сбор метаданных
         meta_dict = get_meta_data.get(namespace.fileUrl)
+        #Очистка временных файлов
+        os.system("rm -r tmp")
 
         #Вывод результата
         if namespace.fileOutput:

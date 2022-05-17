@@ -116,13 +116,9 @@ def crawl(url, flags, num = 0):
     global visited_site
     visited_site += 1
     #Сбор ссылок для дальнейшего обхода
-    try:
-        links = collect_data_from_website(url, flags)
-        #if visited_site < 1:
-        #Обход найденных ссылок
-        for link in links:
-            crawl(link, flags)
-    except BaseException:
-        True
-    finally:
-        return int_url, file_struct, names, email_addresses, phone_numbers
+    links = collect_data_from_website(url, flags)
+    #if visited_site < 1:
+    #Обход найденных ссылок
+    for link in links:
+      crawl(link, flags)
+    return int_url, file_struct, names, email_addresses, phone_numbers
