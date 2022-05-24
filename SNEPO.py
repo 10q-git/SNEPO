@@ -6,10 +6,11 @@ import get_meta_data
 import input_parse
 import logo
 import output
+import database_api
 import logging
 
 if __name__ == "__main__":
-    logging.basicConfig(filename="log.txt", level=logging.INFO)
+    ##logging.basicConfig(filename="log.txt", level=logging.INFO)
     #Вывод лого
     logo.logo_print()
 
@@ -47,7 +48,11 @@ if __name__ == "__main__":
             flags = flags | 1
 
         #Сбор данных
-        int_url, file_struct, names, email_addresses, phone_numbers = get_data.crawl(url, flags)
+        os.system("rm sqlite_urls.db")
+        sqlite_connect = database_api.create_database()
+        int_url, file_struct, names, email_addresses, phone_numbers = get_data.crawl(url, flags, sqlite_connect)
+        sqlite_connect.commit()
+        database_api.close_database(sqlite_connect)
 
         #Воссоздание файловой структуры
         file_struct = dict()

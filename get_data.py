@@ -9,6 +9,7 @@ import requests
 import search_names
 import search_phones
 import search_emails
+import database_api
 import logging
 
 #Инициализация переменных
@@ -112,13 +113,34 @@ def collect_data_from_website(url, flags):
     return urls
 
 #Паук
-def crawl(url, flags, num = 0):
+def crawl(url, flags, sqlite_connect, num = 0):
     global visited_site
     visited_site += 1
+    cursor = sqlite_connect.cursor()
     #Сбор ссылок для дальнейшего обхода
-    links = collect_data_from_website(url, flags)
-    #if visited_site < 1:
+    urls = collect_data_from_website(url, flags)
+    for url in urls:
+        cursor.execute(f"""INSERT INTO urls
+                              (url, visited)
+                              VALUES
+                              ('{url}', 0);""")
+
+    cursor.execute("""SELECT url 
+                      FROM urls 
+                      WHERE visited = 0;""")
+    not_visited_urls = cursor.fetchall()
+
+    for not_visited_url in not_visited_urls:
+        cursor.execute(f"""UPDATE urls 
+                           SET visited = 1 
+                           WHERE url == '{str(not_visited_url[0])}';""")
+        sqlite_connect.commit()
+        crawl(str(not_visited_url[0]), flags, sqlite_connect)
+
+    cursor.close()
+    #links = set()
+    #if visited_site < 2:
     #Обход найденных ссылок
-    for link in links:
-      crawl(link, flags)
+    #    for link in links:
+    #        crawl(link, flags)
     return int_url, file_struct, names, email_addresses, phone_numbers
