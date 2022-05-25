@@ -50,10 +50,7 @@ if __name__ == "__main__":
         #Сбор данных
         os.system("rm sqlite_urls.db")
         sqlite_connect = database_api.create_database()
-        int_url, file_struct, names, email_addresses, phone_numbers = get_data.crawl(url, flags, sqlite_connect)
-        sqlite_connect.commit()
-        database_api.close_database(sqlite_connect)
-
+        int_url = get_data.crawl(url, flags, sqlite_connect)
         #Воссоздание файловой структуры
         file_struct = dict()
         if flags & 16:
@@ -61,9 +58,18 @@ if __name__ == "__main__":
 
         #Вывод результатов
         if flags & 1:
+            names = database_api.get_names(sqlite_connect)
+            email_addresses = database_api.get_emails(sqlite_connect)
+            phone_numbers = database_api.get_phones(sqlite_connect)
             output.web_data_file_print(file_struct, names, email_addresses, phone_numbers)
         else:
+            names = database_api.get_names(sqlite_connect)
+            email_addresses = database_api.get_emails(sqlite_connect)
+            phone_numbers = database_api.get_phones(sqlite_connect)
             output.web_data_console_print(file_struct, names, email_addresses, phone_numbers)
+
+        database_api.close_database(sqlite_connect)
+        print("Done")
 
     #Если запущен мод meta_data
     elif 'fileUrl' in namespace:

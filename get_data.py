@@ -1,7 +1,5 @@
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
-#from threading import Thread
-#from multiprocessing import Process
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import re
@@ -10,9 +8,8 @@ import search_names
 import search_phones
 import search_emails
 import database_api
-import logging
 
-#Инициализация переменных
+# Инициализация переменных
 int_url = set()
 file_struct = dict()
 names = set()
@@ -20,127 +17,125 @@ email_addresses = set()
 phone_numbers = set()
 visited_site = 0
 
-#Проверка на валидность url
+
+# Проверка на валидность url
 def valid_url(url):
     parsed = urlparse(url)
     return bool(parsed.netloc) and bool(parsed.scheme)
 
-#Обход страницы и сбор данных
-def collect_data_from_website(url, flags):
+
+# Обход страницы и сбор данных
+def collect_data_from_website(url, flags, sqlite_connection):
     global int_url, file_struct, names, email_addresses, phone_numbers
 
     urls = set()
-    #Извлекаем домен
+    # Извлекаем домен
     domain_name = urlparse(url).netloc
 
-    #Подготовка сессии для работы со страницей
+    # Подготовка сессии для работы со страницей
     session = requests.Session()
     retry = Retry(connect=3, backoff_factor=0.5)
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('http://', adapter)
     session.mount('https://', adapter)
 
-    #Установка user агента
+    # Установка user агента
     headers = {'User-Agent': 'Mozilla/5.0'}
 
-    #Запрос html кода
+    # Запрос html кода
     html_content = session.get(url, headers=headers).content
 
-    #Начло парсинга
+    # Начло парсинга
     soup = BeautifulSoup(html_content, "lxml", from_encoding="UTF-8")
 
-    #Перебираем тэги <a> в html коде
+    # Перебираем тэги <a> в html коде
     for a_tag in soup.findAll("a"):
-        #Сохраняем найденныю ссылку
+        # Сохраняем найденныю ссылку
         href = a_tag.attrs.get("href")
 
-        #Проверяем на непустоту тэга <a>
+        # Проверяем на непустоту тэга <a>
         if href == "" or href is None:
             continue
 
-        #Создаем ссылку на страницу
+        # Создаем ссылку на страницу
         if href not in url:
             href = urljoin(url, href)
 
-        #Парсим ссылку
+        # Парсим ссылку
         parsed_href = urlparse(href)
         if "http" in parsed_href.scheme:
-            #Обрезаем ненужное из ссылки
+            # Обрезаем ненужное из ссылки
             href = parsed_href.scheme + "://" + parsed_href.netloc + parsed_href.path
 
-            #Проверяем валидность
+            # Проверяем валидность
             if not valid_url(href):
                 continue
 
-            #Проверяем есть ли такая ссылка в наборе
+            # Проверяем есть ли такая ссылка в наборе
             if href in int_url:
                 continue
 
-            #Проверяем внутренняя ли ссылка, если нет, то пропускаем
+            # Проверяем внутренняя ли ссылка, если нет, то пропускаем
             if domain_name not in href:
                 continue
-            print(f"[*] Internal link: {href}")
 
             int_url.add(href)
-            #Отссеваем файлы для дальнейшего просмотра
-            if not re.search(r'\.[a-zA-Z]+$', href):
+            # Отссеваем файлы для дальнейшего просмотра
+            if not re.search(r'\.[a-zA-Z0-9]+$', href):
                 urls.add(href)
 
-    #Сбор ФИО
+    # Сбор ФИО
     if flags & 8:
         try:
             html_content.decode('UTF-8')
         except BaseException:
             names = names
         else:
-            names = names.union(search_names.search(html_content.decode('UTF-8')))
-    #Сбор Emailов
+            names = search_names.search(html_content.decode('UTF-8'))
+            for name in names:
+                database_api.add_names(sqlite_connection, name, url)
+    # Сбор Emailов
     if flags & 4:
         try:
             html_content.decode('UTF-8')
         except BaseException:
             email_addresses = email_addresses
         else:
-            email_addresses = email_addresses.union(search_emails.search(html_content.decode('UTF-8')))
-    #Сбор телефонных номеров
+            email_addresses = search_emails.search(html_content.decode('UTF-8'))
+            for email_address in email_addresses:
+                database_api.add_email(sqlite_connection, email_address, url)
+    # Сбор телефонных номеров
     if flags & 2:
         try:
             html_content.decode('UTF-8')
         except BaseException:
             phone_numbers = phone_numbers
         else:
-            phone_numbers = phone_numbers.union(search_phones.search(html_content.decode('UTF-8')))
+            phone_numbers = search_phones.search(html_content.decode('UTF-8'))
+            for phone_number in phone_numbers:
+                database_api.add_phones(sqlite_connection, phone_number, url)
+
     return urls
 
-#Паук
-def crawl(url, flags, sqlite_connect, num = 0):
-    global visited_site
-    visited_site += 1
-    cursor = sqlite_connect.cursor()
-    #Сбор ссылок для дальнейшего обхода
-    urls = collect_data_from_website(url, flags)
-    for url in urls:
-        cursor.execute(f"""INSERT INTO urls
-                              (url, visited)
-                              VALUES
-                              ('{url}', 0);""")
 
-    cursor.execute("""SELECT url 
-                      FROM urls 
-                      WHERE visited = 0;""")
-    not_visited_urls = cursor.fetchall()
+# Паук
+def crawl(url, flags, sqlite_connection):
+    try:
+        global visited_site
+        visited_site += 1
+        # Сбор ссылок для дальнейшего обхода
+        urls = collect_data_from_website(url, flags, sqlite_connection)
+        for url in urls:
+            database_api.add_url_row(sqlite_connection, url)
 
-    for not_visited_url in not_visited_urls:
-        cursor.execute(f"""UPDATE urls 
-                           SET visited = 1 
-                           WHERE url == '{str(not_visited_url[0])}';""")
-        sqlite_connect.commit()
-        crawl(str(not_visited_url[0]), flags, sqlite_connect)
+        not_visited_urls = database_api.get_not_visited_urls(sqlite_connection)
 
-    cursor.close()
-    #links = set()
-    #if visited_site < 2:
-    #Обход найденных ссылок
-    #    for link in links:
-    #        crawl(link, flags)
-    return int_url, file_struct, names, email_addresses, phone_numbers
+        for not_visited_url in not_visited_urls:
+            if visited_site <= 500:
+                database_api.mark_url(sqlite_connection, str(not_visited_url[0]))
+                print(f"[*] Next link: {not_visited_url[0]}")
+                crawl(str(not_visited_url[0]), flags, sqlite_connection)
+    except KeyboardInterrupt:
+        print("Stopped")
+    finally:
+        return int_url
