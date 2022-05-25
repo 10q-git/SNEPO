@@ -17,6 +17,8 @@ def create_database():
         cursor.execute("""CREATE TABLE phones(
                                             phone TEXT UNIQUE,
                                             url TEXT NOT NULL);""")
+        cursor.execute("""CREATE TABLE file_urls(
+                                             file_url TEXT NOT NULL UNIQUE);""")
         print("База данных подключена к SQLite")
         cursor.close()
 
@@ -76,6 +78,35 @@ def add_phones(sqlite_connection, phone, url):
     cursor.execute(f'''INSERT OR IGNORE INTO phones (phone, url) VALUES ("{phone}", "{url}");''')
     cursor.close()
     sqlite_connection.commit()
+
+
+def add_file_url(sqlite_connection, file_url):
+    cursor = sqlite_connection.cursor()
+    cursor.execute(f'''INSERT OR IGNORE INTO file_urls (file_url) VALUES ("{file_url}");''')
+    cursor.close()
+    sqlite_connection.commit()
+
+
+def get_urls(sqlite_connection):
+    cursor = sqlite_connection.cursor()
+    cursor.execute("""SELECT url 
+                          FROM urls;""")
+    fetched_urls = cursor.fetchall()
+    urls = set()
+    for url in fetched_urls:
+        urls.add(url[0])
+    return urls
+
+
+def get_file_urls(sqlite_connection):
+    cursor = sqlite_connection.cursor()
+    cursor.execute("""SELECT file_url 
+                          FROM file_urls;""")
+    fetched_file_urls = cursor.fetchall()
+    file_urls = set()
+    for file_url in fetched_file_urls:
+        file_urls.add(file_url[0])
+    return file_urls
 
 
 def get_emails(sqlite_connection):

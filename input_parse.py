@@ -10,6 +10,7 @@ def createParser():
 
     web_parser = subparser.add_parser('web_data', help='Collecting web site data')
     web_parser.add_argument('-u', '--url', required=True, type=str, help='Start page for analyse')
+    web_parser.add_argument('-q', '--quick', action='store_true', default=False, help='Turn off saving file links')
     web_parser.add_argument('-s', '--structure', action='store_true', default=False, help='Create structure of WebApp')
     web_parser.add_argument('-n', '--names', action='store_true', default=False, help='Collect names')
     web_parser.add_argument('-e', '--email', action='store_true', default=False, help='Collect email addresses')

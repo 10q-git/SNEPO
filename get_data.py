@@ -16,6 +16,7 @@ names = set()
 email_addresses = set()
 phone_numbers = set()
 visited_site = 0
+running = True
 
 
 # Проверка на валидность url
@@ -71,18 +72,15 @@ def collect_data_from_website(url, flags, sqlite_connection):
             if not valid_url(href):
                 continue
 
-            # Проверяем есть ли такая ссылка в наборе
-            if href in int_url:
-                continue
-
             # Проверяем внутренняя ли ссылка, если нет, то пропускаем
             if domain_name not in href:
                 continue
 
-            int_url.add(href)
             # Отссеваем файлы для дальнейшего просмотра
             if not re.search(r'\.[a-zA-Z0-9]+$', href):
                 urls.add(href)
+            elif flags & 32 != 32:
+                database_api.add_file_url(sqlite_connection, href)
 
     # Сбор ФИО
     if flags & 8:
@@ -120,22 +118,22 @@ def collect_data_from_website(url, flags, sqlite_connection):
 
 # Паук
 def crawl(url, flags, sqlite_connection):
-    try:
-        global visited_site
-        visited_site += 1
-        # Сбор ссылок для дальнейшего обхода
-        urls = collect_data_from_website(url, flags, sqlite_connection)
-        for url in urls:
-            database_api.add_url_row(sqlite_connection, url)
+    global visited_site, running
+    if running:
+        try:
+            visited_site += 1
+            # Сбор ссылок для дальнейшего обхода
+            urls = collect_data_from_website(url, flags, sqlite_connection)
+            for url in urls:
+                database_api.add_url_row(sqlite_connection, url)
 
-        not_visited_urls = database_api.get_not_visited_urls(sqlite_connection)
+            not_visited_urls = database_api.get_not_visited_urls(sqlite_connection)
 
-        for not_visited_url in not_visited_urls:
-            if visited_site <= 500:
-                database_api.mark_url(sqlite_connection, str(not_visited_url[0]))
-                print(f"[*] Next link: {not_visited_url[0]}")
-                crawl(str(not_visited_url[0]), flags, sqlite_connection)
-    except KeyboardInterrupt:
-        print("Stopped")
-    finally:
-        return int_url
+            for not_visited_url in not_visited_urls:
+                if visited_site <= 100:
+                    database_api.mark_url(sqlite_connection, str(not_visited_url[0]))
+                    print(f"[*] Next link: {not_visited_url[0]}")
+                    crawl(str(not_visited_url[0]), flags, sqlite_connection)
+        except KeyboardInterrupt:
+            print("Stoping...")
+            exit()

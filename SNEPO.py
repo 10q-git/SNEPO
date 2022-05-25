@@ -31,6 +31,8 @@ if __name__ == "__main__":
 
         #Создание переменной содержащей флаги
         flags = 0
+        if namespace.quick:
+            flags = flags | 32
         #Флаг структуры
         if namespace.structure:
             flags = flags | 16
@@ -50,11 +52,13 @@ if __name__ == "__main__":
         #Сбор данных
         os.system("rm sqlite_urls.db")
         sqlite_connect = database_api.create_database()
-        int_url = get_data.crawl(url, flags, sqlite_connect)
+        get_data.crawl(url, flags, sqlite_connect)
         #Воссоздание файловой структуры
         file_struct = dict()
         if flags & 16:
-            file_struct = create_file_struct.create(int_url)
+            urls = database_api.get_urls(sqlite_connect)
+            file_urls = database_api.get_file_urls(sqlite_connect)
+            file_struct = create_file_struct.create(urls.union(file_urls))
 
         #Вывод результатов
         if flags & 1:
