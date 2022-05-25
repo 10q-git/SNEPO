@@ -2,12 +2,14 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import re
 import requests
 import search_names
 import search_phones
 import search_emails
 import database_api
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # Инициализация переменных
 int_url = set()
@@ -44,7 +46,7 @@ def collect_data_from_website(url, flags, sqlite_connection):
     headers = {'User-Agent': 'Mozilla/5.0'}
 
     # Запрос html кода
-    html_content = session.get(url, headers=headers).content
+    html_content = session.get(url, headers=headers, verify=False).content
 
     # Начло парсинга
     soup = BeautifulSoup(html_content, "lxml", from_encoding="UTF-8")
@@ -77,7 +79,7 @@ def collect_data_from_website(url, flags, sqlite_connection):
                 continue
 
             # Отссеваем файлы для дальнейшего просмотра
-            if not re.search(r'\.[a-zA-Z0-9]+$', href):
+            if not re.search(r'\.[a-zA-Z0-9]+$', parsed_href.path):
                 urls.add(href)
             elif flags & 32 != 32:
                 database_api.add_file_url(sqlite_connection, href)
